@@ -104,7 +104,7 @@ casper.then(function(){
    
    propertyNum = this.evaluate(function(){
     var searchList = document.querySelector('div[class="property-list"]');
-    var propertyItems = document.querySelectorAll('div[class="ng-scope"][ng-repeat="property in properties"]');
+    var propertyItems = searchList.querySelectorAll('div[class="ng-scope"][ng-repeat="property in properties"]');
     var propertyNum = propertyItems.length;
 
     return propertyNum;

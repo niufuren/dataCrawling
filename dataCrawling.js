@@ -24,6 +24,44 @@ var url='http://www.onthehouse.com.au/';
 var usrName='bo.song@projectmate.com.au';
 var pwd='projectmate2015';
 
+function getData(){
+    var propertyDetails = {};
+    var propertyDiv = document.querySelector('div[name="propertyDetails"]');
+
+
+    //get the property address
+
+    var address = propertyDiv.querySelector('div[class="address"]');
+
+    var street = address.querySelector('span[class="street-address ng-binding ng-scope"]').innerHTML;
+    propertyDetails['street']=street;
+
+    var suburb = address.querySelector('span[itemprop="addressLocality"]').innerHTML;
+    propertyDetails['suburb']=suburb;
+
+    var state = address.querySelector('span[itemprop="addressRegion"]').innerHTML;
+    propertyDetails['state']=state;
+
+    var postcode = address.querySelector('span[itemprop="postalCode"]').innerHTML;
+    propertyDetails['postcode']=postcode;
+
+    //get the number of bathroom, bedroom and car park
+
+    var property = propertyDiv.querySelector('ul[property="property"]');
+    var bedroom = property.querySelector('li[class="property-attribute property-attribute-bed ng-binding"]').innerHTML;
+    propertyDetails['bedroom']=bedroom;
+
+    var bathroom = property.querySelector('li[class="property-attribute property-attribute-bath ng-binding"]').innerHTML;
+    propertyDetails['bathroom']=bathroom;
+
+    var carpark = property.querySelector('li[class="property-attribute property-attribute-car ng-binding"]').innerHTML;
+    propertyDetails['carpark']=carpark;
+
+    var 
+    
+    return propertyDetails;
+};
+
 casper.start(url);
 
 casper.then(function(){
@@ -100,17 +138,36 @@ casper.then(function(){
    fs.write('afterSearch.html', this.getPageContent(),'w');
 
 // get the number of properties in a webpage 
-   var propertyNum;
-   
+   var hrefAll;
+
    propertyNum = this.evaluate(function(){
     var searchList = document.querySelector('div[class="property-list"]');
     var propertyItems = searchList.querySelectorAll('div[class="ng-scope"][ng-repeat="property in properties"]');
     var propertyNum = propertyItems.length;
 
-    return propertyNum;
+    var hrefAll = searchList.querySelectorAll('a[href]');
+
+    return hrefAll;
    });
 
 // this.echo(propertyNum, 'INFO');
+   var hrefStrPre = '#topOfSearchResults div div div:nth-child(';
+   var hrefStrPost = ') div.property-list-item.ng-isolate-scope div.property-list-item-body div.property-item-details a span.suburb-state-postcode.ng-binding';
+
+   var hrefStr = hrefStrPre+1+hrefStrPost;
+
+   this.thenClick(hrefStr, function(){
+       this.wait(10000, function(){
+            this.capture('record1.png'); 
+            fs.write('record1.html', this.getPageContent(),'w');
+            fs.write('property1.html',this.getHTML('div[name="propertyDetails"]',true),'w');
+            var propertyDetails;
+            propertyDetails = this.evaluate(getData);
+            this.echo(JSON.stringify(propertyDetails), 'INFO');
+            //this.wait(60000);
+       });
+      
+   });
 
 });
 

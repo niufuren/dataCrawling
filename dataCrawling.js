@@ -56,8 +56,82 @@ function getData(){
 
     var carpark = property.querySelector('li[class="property-attribute property-attribute-car ng-binding"]').innerHTML;
     propertyDetails['carpark']=carpark;
+    
+    //get the type of the property
+    var propertyType = propertyDiv.querySelector('div[class="property-type ng-binding ng-scope"]').innerHTML;
+    propertyDetails['type']=propertyType;
 
-    var 
+    //get the estimate price and updated date
+    var estimatePrice = propertyDiv.querySelector('div[class="estimate"]').innerText;
+    propertyDetails['estimate price']=estimatePrice;
+
+    //get the estimate accuracy
+    var accuracy = propertyDiv.querySelector('div[class="accuracy-level ng-binding ng-scope"]').innerText;
+    propertyDetails['estimate accuracy'] = accuracy;
+
+    var updateDiv = propertyDiv.querySelector('div[class="date-row"] span').innerText;
+    propertyDetails['update Time'] = updateDiv;
+    
+    /*
+    get the property info: year built, lot plan, zoing, primary land use, issuing area, land size
+    */
+    var propertyInfo = propertyDiv.querySelector('div[class="property-info property-pane-panel ng-isolate-scope"]');
+
+    var yearBuilt = propertyInfo.querySelector('tr[class="legal-attribute-row year-built"] td[class="value ng-binding"]').innerText;
+    propertyDetails['year built'] = yearBuilt;
+
+    var lotPlan = propertyInfo.querySelector('tr[class="legal-attribute-row lot-plan"] td[class="value ng-binding"]').innerText;
+    propertyDetails['lot plan'] = lotPlan;
+
+    var zoning = propertyInfo.querySelector('tr[class="legal-attribute-row zoning"] td[class="value ng-binding"]').innerText;
+    propertyDetails['zoning'] = zoning;
+
+    var primaryLand = propertyInfo.querySelector('tr[class="legal-attribute-row primary-land-use"] td[class="value ng-binding"]').innerText;
+    propertyDetails['primary land use'] = primaryLand;
+
+    var issuingArea = propertyInfo.querySelector('tr[class="legal-attribute-row issuing-area"] td[class="value ng-binding"]').innerText;
+    propertyDetails['issuing area'] = issuingArea;
+
+    var landSize = propertyInfo.querySelector('tr[class="legal-attribute-row land-size"] td[class="value"] square-meters').getAttribute('size');
+    propertyDetails['land size'] = landSize;
+
+    // get the property history
+    var historyDiv = propertyDiv.querySelector('div[class="property-history-list ng-scope"]');
+
+    var historyList = historyDiv.querySelectorAll('div[class="property-history-list-item ng-scope"]');
+
+    propertyDetails['history'] = [];
+
+    var i=0;
+
+    for (; i<historyList.length; i++){
+        var record = {};
+
+        var itemText=historyList[i].querySelector('div[class="property-history-list-text"]');
+
+        var soldPrice = itemText.querySelector('div[class="property-history-row-heading"]');
+
+        var soldPriceStatus = soldPrice.querySelector('span[class="property-history-type ng-binding ng-scope"]').innerText;
+
+        var soldPriceValue = soldPrice.querySelector('span[class="ng-binding ng-scope"]').innerText;
+
+
+        var soldSource = itemText.querySelector('div[class="property-history-row"]');
+
+        var soldDate = soldSource.querySelector('span[class="property-history-date ng-binding ng-scope"]').innerText;
+
+        var sourceFrom = soldSource.querySelector('span[class="property-history-source ng-binding ng-scope"]').innerText;
+         
+        // //record['sold Price'] = historyList[item].innerHTML;
+        record['sold status'] = soldPriceStatus;
+        record['sold price'] = soldPriceValue;
+        record['sold source'] = sourceFrom;
+        record['sold date'] = soldDate;
+
+        propertyDetails['history'].push(record);
+        //console.log(item.innerHTML);
+    } 
+
     
     return propertyDetails;
 };

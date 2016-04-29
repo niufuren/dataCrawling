@@ -24,6 +24,8 @@ var url='http://www.onthehouse.com.au/';
 var usrName='bo.song@projectmate.com.au';
 var pwd='projectmate2015';
 
+//var getData = require('./getData');
+
 function getData(){
     var propertyDetails = {};
     var propertyDiv = document.querySelector('div[name="propertyDetails"]');
@@ -48,14 +50,31 @@ function getData(){
     //get the number of bathroom, bedroom and car park
 
     var property = propertyDiv.querySelector('ul[property="property"]');
-    var bedroom = property.querySelector('li[class="property-attribute property-attribute-bed ng-binding"]').innerHTML;
-    propertyDetails['bedroom']=bedroom;
+    if (property.querySelector('li[class="property-attribute property-attribute-bed ng-binding"]')){
+        var bedroom = property.querySelector('li[class="property-attribute property-attribute-bed ng-binding"]').innerHTML;
+        propertyDetails['bedroom']=bedroom;
+    }
+    else{
+        propertyDetails['bedroom']="";
+    }
+    
 
-    var bathroom = property.querySelector('li[class="property-attribute property-attribute-bath ng-binding"]').innerHTML;
-    propertyDetails['bathroom']=bathroom;
+    if (property.querySelector('li[class="property-attribute property-attribute-bath ng-binding"]')){
+        var bathroom = property.querySelector('li[class="property-attribute property-attribute-bath ng-binding"]').innerHTML;
+        propertyDetails['bathroom']=bathroom;
+    }
+    else{
+        propertyDetails['bathroom']="";
+    }
 
-    var carpark = property.querySelector('li[class="property-attribute property-attribute-car ng-binding"]').innerHTML;
-    propertyDetails['carpark']=carpark;
+    if(property.querySelector('li[class="property-attribute property-attribute-car ng-binding"]')){
+
+        var carpark = property.querySelector('li[class="property-attribute property-attribute-car ng-binding"]').innerHTML;
+        propertyDetails['carpark']=carpark;
+    }
+    else{
+        propertyDetails['carpark']=""
+    }
     
     //get the type of the property
     var propertyType = propertyDiv.querySelector('div[class="property-type ng-binding ng-scope"]').innerHTML;
@@ -66,7 +85,7 @@ function getData(){
     propertyDetails['estimate price']=estimatePrice;
 
     //get the estimate accuracy
-    var accuracy = propertyDiv.querySelector('div[class="accuracy-level ng-binding ng-scope"]').innerText;
+    var accuracy = propertyDiv.querySelector('div[ng-class="estimateAccuracyClass"] div').innerText;
     propertyDetails['estimate accuracy'] = accuracy;
 
     var updateDiv = propertyDiv.querySelector('div[class="date-row"] span').innerText;
@@ -79,23 +98,41 @@ function getData(){
 
     var yearBuilt = propertyInfo.querySelector('tr[class="legal-attribute-row year-built"] td[class="value ng-binding"]').innerText;
     propertyDetails['year built'] = yearBuilt;
-
-    var lotPlan = propertyInfo.querySelector('tr[class="legal-attribute-row lot-plan"] td[class="value ng-binding"]').innerText;
-    propertyDetails['lot plan'] = lotPlan;
+    
+    if(propertyInfo.querySelector('tr[class="legal-attribute-row lot-plan"] td[class="value ng-binding"]')){
+        var lotPlan = propertyInfo.querySelector('tr[class="legal-attribute-row lot-plan"] td[class="value ng-binding"]').innerText;
+        propertyDetails['lot plan'] = lotPlan;
+    }
+    else{
+        propertyDetails['lot plan'] = "";
+    }
 
     var zoning = propertyInfo.querySelector('tr[class="legal-attribute-row zoning"] td[class="value ng-binding"]').innerText;
     propertyDetails['zoning'] = zoning;
+    
+    if (propertyInfo.querySelector('tr[class="legal-attribute-row primary-land-use"] td[class="value ng-binding"]')) {
 
-    var primaryLand = propertyInfo.querySelector('tr[class="legal-attribute-row primary-land-use"] td[class="value ng-binding"]').innerText;
-    propertyDetails['primary land use'] = primaryLand;
+        var primaryLand = propertyInfo.querySelector('tr[class="legal-attribute-row primary-land-use"] td[class="value ng-binding"]').innerText;
+        propertyDetails['primary land use'] = primaryLand;
+    }
+    else {
+        propertyDetails['primary land use'] = "";
+    }
+     
+    if (propertyInfo.querySelector('tr[class="legal-attribute-row issuing-area"] td[class="value ng-binding"]')){ 
 
-    var issuingArea = propertyInfo.querySelector('tr[class="legal-attribute-row issuing-area"] td[class="value ng-binding"]').innerText;
-    propertyDetails['issuing area'] = issuingArea;
+        var issuingArea = propertyInfo.querySelector('tr[class="legal-attribute-row issuing-area"] td[class="value ng-binding"]').innerText;
+        propertyDetails['issuing area'] = issuingArea;
+    }
+    else{
+
+        propertyDetails['issuing area'] ="";
+    }
 
     var landSize = propertyInfo.querySelector('tr[class="legal-attribute-row land-size"] td[class="value"] square-meters').getAttribute('size');
     propertyDetails['land size'] = landSize;
 
-    // get the property history
+    // // get the property history
     var historyDiv = propertyDiv.querySelector('div[class="property-history-list ng-scope"]');
 
     var historyList = historyDiv.querySelectorAll('div[class="property-history-list-item ng-scope"]');
@@ -185,7 +222,7 @@ casper.then(function(){
 
 casper.then(function(){
     this.fill('form[name="homeSearchForm"]',{
-       'search': 2015 
+       'search': 'NSW 2015' 
     }, false);
     this.evaluate(function(){
         document.querySlector('form[name="homeSearchForm"]').search(); 
@@ -200,7 +237,7 @@ casper.then(function(){
     }
 
     this.click('button#searchButton');
-    this.wait(6000);
+    this.wait(10000);
     // this.capture('afterSubmit.png');
     // fs.write('afterSubmit.html', this.getPageContent(),'w');
     //this.wait(60000);
@@ -219,32 +256,40 @@ casper.then(function(){
     var propertyItems = searchList.querySelectorAll('div[class="ng-scope"][ng-repeat="property in properties"]');
     var propertyNum = propertyItems.length;
 
-    var hrefAll = searchList.querySelectorAll('a[href]');
+    //var hrefAll = searchList.querySelectorAll('a[href]');
 
-    return hrefAll;
+    return propertyNum;
    });
 
 // this.echo(propertyNum, 'INFO');
    var hrefStrPre = '#topOfSearchResults div div div:nth-child(';
    var hrefStrPost = ') div.property-list-item.ng-isolate-scope div.property-list-item-body div.property-item-details a span.suburb-state-postcode.ng-binding';
-
-   var hrefStr = hrefStrPre+1+hrefStrPost;
-
-   this.thenClick(hrefStr, function(){
-       this.wait(10000, function(){
-            this.capture('record1.png'); 
-            fs.write('record1.html', this.getPageContent(),'w');
-            fs.write('property1.html',this.getHTML('div[name="propertyDetails"]',true),'w');
-            var propertyDetails;
-            propertyDetails = this.evaluate(getData);
-            this.echo(JSON.stringify(propertyDetails), 'INFO');
-            //this.wait(60000);
+   
+   propertyNum=6;
+   var i;
+   var count=1; 
+   for (i=1; i<=propertyNum;i++ ){
+       var hrefStr = hrefStrPre+i+hrefStrPost;
+       
+       this.thenClick(hrefStr, function(){
+           this.wait(10000, function(){
+                this.capture(count+'.png'); 
+                fs.write(count+'-page.html', this.getPageContent(),'w');
+                fs.write(count+'.html',this.getHTML('div[name="propertyDetails"]',true),'w');
+                var propertyDetails;
+                propertyDetails = this.evaluate(getData);
+                //propertyDetails = this.evaluate(getData.getData);
+                //this.echo(JSON.stringify(propertyDetails), 'INFO');
+                this.echo(count, 'INFO');
+                fs.write('2015-'+count+'.json',JSON.stringify(propertyDetails),'w');
+                count=count+1;
+                //i++;
+                //this.wait(60000);
+           });      
        });
-      
-   });
+   }
 
 });
-
 
 
 casper.run(

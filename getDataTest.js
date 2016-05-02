@@ -1,9 +1,9 @@
-
-
-
+/*
+test the getData() function in getData.js
+*/
 fs = require('fs');
 
-var url='file:///Users/juanlu/Workspace/code/webDataCollection/onTheHouseData/8.html';
+var url='file:///Users/juanlu/Workspace/code/webDataCollection/onTheHouseData/2.html';
 
 var getData = require('./getData');
 //dataCrawling = require('./dataCrawling.js');
@@ -27,6 +27,7 @@ casper.then(function(){
     var propertyDetails;
     propertyDetails = this.evaluate(getData.getData);
     this.echo(JSON.stringify(propertyDetails), 'INFO');
+    //this.wait(60000);
 });
 
 casper.run(

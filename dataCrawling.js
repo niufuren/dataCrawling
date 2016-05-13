@@ -8,7 +8,7 @@ fs = require('fs');
 
 var casper = require('casper').create({
     verbose: true,
-    logLevel: 'debug',
+    //logLevel: 'debug',
     viewportSize: {
         width: 1024,
         height: 1600
@@ -28,14 +28,65 @@ var getData = require('./getData');
 
 var pageNum = 1; 
 
-function processPage(){
-    //   this.wait(60000);
-    this.capture('afterSearch.png');
-    fs.write('afterSearch.html', this.getPageContent(), 'w');
+var searchSuburb = 'Summer Hill';
+var searchPostcode = 2130; //The postcode of Ashfield
 
-    // get the number of properties in a webpage 
-    //var hrefAll;
+var searchState = 'NSW';
 
+var jsonFolder = './json/';
+
+var htmlFolder = './html/';
+
+var searchStreet;
+
+// read the street name from the csv file
+var streets=[]; 
+stream = fs.open('summer_hill.csv', 'r');
+line = stream.readLine();
+i = 0;
+
+while(line) {
+    if (i>0){
+        //put the name of street into an array
+        streets.push(line);
+    } 
+    line = stream.readLine();
+    i++;
+}
+
+console.log(streets);
+
+
+var processPage=function(){
+    this.echo("**********");
+    this.echo(searchStreet, 'INFO');
+    this.capture('afterSearch-'+ pageNum+'.png');
+    fs.write('afterSearch-'+pageNum+'.html', this.getPageContent(), 'w');
+
+    var currentPageNum=pageNum;
+    
+    //show the number of search result
+    if(currentPageNum==1){
+        var searchNum =  this.evaluate(function(){
+            var matchingResult;
+            var searchResult = document.querySelector(
+                'div[class="number-of-results ng-scope"]')
+            if (searchResult){
+                var searchResultString = searchResult.innerText;
+                matchingResult = searchResultString.match(/\d+/) 
+                }
+            return matchingResult;
+           });
+        this.echo('the matching result is '+ searchNum, 'INFO'); 
+
+        if (searchNum > 1000){
+            this.echo('the result exceeds the maximum', 'ERROR');
+            this.exit();
+        }       
+    }
+
+    this.echo("current page number is "+currentPageNum, 'INFO');
+    this.then( function(){
     var propertyNum = this.evaluate(function() {
         var searchList = document.querySelector('div[class="property-list"]');
         var propertyItems = searchList.querySelectorAll('div[class="ng-scope"][ng-repeat="property in properties"]');
@@ -46,68 +97,88 @@ function processPage(){
         return propertyNum;
     });
 
-    // this.echo(propertyNum, 'INFO');
-    var hrefStrPre = '#topOfSearchResults div div div:nth-child(';
-    var hrefStrPost = ') div.property-list-item.ng-isolate-scope div.property-list-item-body div.property-item-details a span.suburb-state-postcode.ng-binding';
+    this.echo("number of property is "+propertyNum, 'INFO');
 
-    //propertyNum=6;
-    var i;
-    var count = 1;
-    for (i = 1; i <= propertyNum; i++) {
-        var hrefStr = hrefStrPre + i + hrefStrPost;
+    var hrefStrPre = '#topOfSearchResults div div div:nth-child(';
+    // var hrefStrPost = ') div.property-list-item.ng-isolate-scope div.property-list-item-body div.property-item-details a span.suburb-state-postcode.ng-binding';
+
+    var hrefStrPost = ') div.property-list-item.ng-isolate-scope div.property-list-item-body div.property-item-details a';
+
+    // //propertyNum=6;
+    var i=1;
+    //var count = 1;
+    for ( ; i <= propertyNum;  ) {
+        
 
         // this.wait(10000, function() {
-        this.thenClick(hrefStr, function() {
-            this.wait(20000,
-                function then() {
+        // if (this.exists(hrefStr)){
+        //     this.echo('the hypelink exists', 'INFO');
+        // }
+        (function(count){
+        casper.then( function(){
+            var hrefStr = hrefStrPre + count + hrefStrPost;
+            //this.echo('the value of i is'+JSON.stringify(i)+' '+'the value of count'+count, 'INFO');
+
+            this.wait(5000);
+            this.thenClick(hrefStr, function() {
+                this.waitForSelector('div[class="property-pane-inner-container"]',
+                function() {
+                    this.echo("the item "+count, 'INFO');
                     this.capture(count + '.png');
-                    fs.write(count + '-page.html', this.getPageContent(), 'w');
-                    fs.write(count + '.html', this.getHTML('div[name="propertyDetails"]', true), 'w');
-                    var propertyDetails;
+                    fs.write(htmlFolder+currentPageNum+'-'+count + '-wholePage.html', this.getPageContent(), 'w');
+                    fs.write(htmlFolder+currentPageNum+'-'+count + '.html', this.getHTML('div[name="propertyDetails"]', true), 'w');
+                    //var propertyDetails;
 
-                    propertyDetails = this.evaluate(getData.getData);
+                    var propertyDetails = this.evaluate(getData.getData);
                     //this.echo(JSON.stringify(propertyDetails), 'INFO');
-                    this.echo(count, 'INFO');
-                    fs.write('2131-' + count + '.json', JSON.stringify(propertyDetails), 'w');
-                    count = count + 1;
-                });
+
+                    fs.write(jsonFolder+searchPostcode+'-'+searchStreet+'-'+ currentPageNum+'-'+count + '.json', JSON.stringify(propertyDetails), 'w');
+                    //count = count + 1;
+                },
+                function() { 
+                        this.capture('timeout-'+searchStreet+'-'+currentPageNum+'-'+count+'.png');
+                        fs.write('timeout-'+searchStreet+'-'+currentPageNum+'-'+count+'.html', this.getPageContent(),'w');
+                        count = count + 1;}, 
+                10000 
+            );
         });
+           //i++; 
+        });    
+        })(i);
+        
+        i++;
+       // count++;
+        
     }
 
-    var nextPage;
-    nextPage = 'a[class="paginator-button paginator-button-next"]'; // the button of next page 
-
-    if (this.exist(nextPage)){
-        var nextPageNum = pageNum+1;
-        this.thenClick(nextPage, processPage(nextPageNum));
-    }else{
-        this.echo("Done", "INFO").exit();
-    }
-
-};
-
-var processPage2=function(){
-    this.echo("**********");
-    this.capture('afterSearch-'+ pageNum+'.png');
-    fs.write('afterSearch-'+pageNum+'.html', this.getPageContent(), 'w');
+    });
+    
+    this.then(function(){
     var nextPagebutton;
     nextPagebutton = 'a[class="paginator-button paginator-button-next"]'; // the button of next page 
 
-
-
     if (this.exists(nextPagebutton)){
-        pageNum = pageNum+1;
-        this.echo(pageNum, 'INFO');
-        this.thenClick(nextPagebutton);
-        this.wait(10000);
-        this.then(function(){ 
-            this.waitForSelector('div[class="search-container"]',processPage2);
+        pageNum = currentPageNum+1;
+        this.echo("the next page number is "+pageNum, 'INFO');
+        this.click(nextPagebutton);
+        this.wait(1000);
+        this.then(function(){
+
+            this.waitForSelector('div[class="search-results-pane show-pagination"]',
+                                    processPage,
+                                    function() { 
+                                    this.capture('timeout-'+searchStreet+'-'+currentPageNum +'.png');
+                                    fs.write('timeout-'+searchStreet+'-'+currentPageNum +'.html', this.getPageContent(),'w');
+                                    }, 
+                                    10000 
+                                 );
         });
     }else{
-        this.echo("Done", "INFO").exit();
+        //this.echo("Done", "INFO").exit();
+        pageNum = 1;
+        this.echo("the page number is changed to "+ pageNum, "INFO")
     }
-
-
+   });
 };
 
 //console.log(getData.answer1());
@@ -153,102 +224,77 @@ casper.then(function() {
     }
 
     this.click('button[type="submit"][tabindex="3"]');
+
+    this.wait(6000);
     // this.capture('submit.png');
     // fs.write('login.html', this.getPageContent(),'w')
 });
 
-casper.then(function() {
-    this.fill('form[name="homeSearchForm"]', {
-        'search': 'NSW 2131'
-    }, false);
-    this.evaluate(function() {
-        document.querySlector('form[name="homeSearchForm"]').search();
-    });
+//casper.each(streets, function(self, street){
+casper.eachThen(streets, function(street){
+
+    var currentSearchStreet = street.data;
+
+    searchStreet = currentSearchStreet;
+    //this.echo('the street is '+ street, 'INFO');
+    this.echo('the current street is '+ searchStreet, 'INFO');
+    this.echo('the current suburb is '+ searchSuburb, 'INFO');
+    var searchString = searchStreet+','+searchSuburb+','+searchState+' '+searchPostcode;
+    this.echo('the searchString is '+ searchString, 'INFO');
+
+    // if (this.exists('form[name="homeSearchForm"]')) {
+    //         this.echo('search form  found', 'INFO');
+    //     } else {
+    //         this.echo('search form not found', 'ERROR');
+    //     }
+
+    this.wait(6000);
+    this.capture('afterSearch.png');
+    fs.write('afterSearch.html', this.getPageContent(),'w');
+    
+    if (this.exists('form[name="searchControlsForm"]')){
+        
+        this.fill('form[name="searchControlsForm"]', {
+                  'search': searchString 
+                   }, false);
+
+       this.evaluate(function() {
+            document.querySlector('form[name="searchControlsForm"]').search();
+        });
+
+    }else if (this.exists('form[name="homeSearchForm"]')){
+        this.fill('form[name="homeSearchForm"]', {
+                  'search': searchString
+                  }, false);
+
+        this.evaluate(function() {
+            document.querySlector('form[name="homeSearchForm"]').search();
+        });
+
+    }else{
+        this.echo('search form not found', 'ERROR');
+    }
 
 
     if (this.exists('#searchButton')) {
         this.echo('search button found', 'INFO');
+        this.click('button#searchButton');
+        this.echo('search button is clicked');
     } else {
         this.echo('search button not found', 'ERROR');
     }
-
-    this.click('button#searchButton');
-    this.wait(10000);
-    // this.capture('afterSubmit.png');
-    // fs.write('afterSubmit.html', this.getPageContent(),'w');
-    //this.wait(60000);
+    
+    this.wait(6000);
+    this.waitForSelector('div[class="search-results-main-pane"]', 
+                        processPage,  
+                        function() { 
+                        this.capture(searchStreet+'.png');
+                        fs.write(searchStreet+'.html', this.getPageContent(),'w');}, 
+                        10000
+                        );
 });
 
-casper.waitForSelector('div[class="search-container"]', processPage2);
-
-// casper.then(function() {
-//     var pageNum = 1; 
-    
-//     processPage(pageNum);
-    //   this.wait(60000);
-    // this.capture('afterSearch.png');
-    // fs.write('afterSearch.html', this.getPageContent(), 'w');
-
-    // // get the number of properties in a webpage 
-    // var hrefAll;
-
-    // propertyNum = this.evaluate(function() {
-    //     var searchList = document.querySelector('div[class="property-list"]');
-    //     var propertyItems = searchList.querySelectorAll('div[class="ng-scope"][ng-repeat="property in properties"]');
-    //     var propertyNum = propertyItems.length;
-
-    //     //var hrefAll = searchList.querySelectorAll('a[href]');
-
-    //     return propertyNum;
-    // });
-
-    // // this.echo(propertyNum, 'INFO');
-    // var hrefStrPre = '#topOfSearchResults div div div:nth-child(';
-    // var hrefStrPost = ') div.property-list-item.ng-isolate-scope div.property-list-item-body div.property-item-details a span.suburb-state-postcode.ng-binding';
-
-    // //propertyNum=6;
-    // var i;
-    // var count = 1;
-    // for (i = 1; i <= propertyNum; i++) {
-    //     var hrefStr = hrefStrPre + i + hrefStrPost;
-
-    //     // this.wait(10000, function() {
-    //     this.thenClick(hrefStr, function() {
-    //         // this.waitFor(
-    //         //     function check(){
-    //         //     return this.evaluate(function(){
-    //         //         var content = document.querySelector('div[name="propertyDetails"]');
-    //         //         var contentLength = content.innerText.length;
-
-    //         //         return contentLength > 1;
-    //         //         });
-    //         //     //return true; 
-    //         //     }, 
-    //         this.wait(20000,
-    //             function then() {
-    //                 this.capture(count + '.png');
-    //                 fs.write(count + '-page.html', this.getPageContent(), 'w');
-    //                 fs.write(count + '.html', this.getHTML('div[name="propertyDetails"]', true), 'w');
-    //                 var propertyDetails;
-
-    //                 propertyDetails = this.evaluate(getData.getData);
-    //                 //this.echo(JSON.stringify(propertyDetails), 'INFO');
-    //                 this.echo(count, 'INFO');
-    //                 fs.write('2131-' + count + '.json', JSON.stringify(propertyDetails), 'w');
-    //                 count = count + 1;
-    //                 //i++;
-    //                 //this.wait(60000);
-    //             }
-    //             // ,
-    //             // function timeout() { // step to execute if check has failed
-    //             //     this.echo("Can't load page", 'ERROR');
-    //             // },
-    //             // 60000 
-    //         );
-    //     });
-    // }
-//});
-
+//casper.waitForSelector('div[class="search-results-pane show-pagination"]', processPage2);
 
 casper.run(
     function() {
